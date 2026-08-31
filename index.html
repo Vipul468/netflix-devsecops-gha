@@ -1,23 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    />
-    <title>Netflix</title>
-  </head>
-  <body style="margin: 0">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netflix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header id="header">
+    <div class="nav-left">
+      <h1 class="logo">NETFLIX</h1>
+      <nav>
+        <a href="#" data-cat="trending" class="nav-link active">Home</a>
+        <a href="#" data-cat="hollywood" class="nav-link">Movies</a>
+        <a href="#" data-cat="series" class="nav-link">Web Series</a>
+        <a href="#" data-cat="bollywood" class="nav-link">Bollywood</a>
+      </nav>
+    </div>
+    <div class="nav-right">
+      <input id="search" type="text" placeholder="Search movies, series...">
+      <div class="avatar"></div>
+    </div>
+  </header>
+
+  <!-- Hero banner -->
+  <section id="hero">
+    <div class="hero-fade"></div>
+    <div class="hero-content">
+      <h2 id="hero-title">Loading…</h2>
+      <p id="hero-overview"></p>
+      <div class="hero-btns">
+        <button class="btn btn-play">▶ Play</button>
+        <button class="btn btn-info">＋ My List</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rows of content -->
+  <main id="rows"></main>
+
+  <!-- Search results -->
+  <section id="search-results" hidden>
+    <h3>Search results</h3>
+    <div id="search-grid" class="grid"></div>
+  </section>
+
+  <footer>
+    <p>Developed by <b>Vipul</b> · Powered by TMDB · DevSecOps on GitHub Actions</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
 </html>
