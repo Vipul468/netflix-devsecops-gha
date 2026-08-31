@@ -17,8 +17,7 @@ spec:
     spec:
       containers:
         - name: netflix-clone
-          # This line is updated automatically by the CD (GitOps) workflow.
-          image: YOUR_DOCKERHUB_USERNAME/netflix-clone:latest
+          image: vipulsharmait/netflix-clone:latest
           ports:
             - containerPort: 80
           resources:
@@ -34,13 +33,3 @@ spec:
               port: 80
             initialDelaySeconds: 5
             periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: false     # nginx:alpine master needs root to bind :80
-            readOnlyRootFilesystem: false
