@@ -13,7 +13,7 @@ ENV VITE_APP_API_ENDPOINT_URL="https://api.themoviedb.org/3"
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # ---- Runtime stage ----
 FROM nginx:1.27-alpine AS runtime
