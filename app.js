@@ -1,6 +1,6 @@
 // ===== TMDB config =====
 // Your TMDB v3 API key is inserted here by the pipeline/setup step.
-const API_KEY = "bc9db793aab7d8aaf7dbd33c9b8aa1adea91f766";
+const API_KEY = "5fc08699c1a1bd3ce3c7114cb363e83e";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p/w500";
 const BACKDROP = "https://image.tmdb.org/t/p/original";
