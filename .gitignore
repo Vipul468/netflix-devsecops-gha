@@ -1,0 +1,9 @@
+node_modules/
+build/
+.env
+.env.*
+*.log
+dependency-check-report/
+reports/
+trivy-*.txt
+.DS_Store

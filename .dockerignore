@@ -1,0 +1,16 @@
+node_modules
+build
+.git
+.github
+.gitignore
+Dockerfile
+*.md
+k8s
+argocd
+monitoring
+infra
+docs
+.env
+.env.*
+dependency-check-report
+trivy-*.txt

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: netflix-clone
+  namespace: netflix
+  labels:
+    app: netflix-clone
+spec:
+  type: LoadBalancer     # AWS ELB on EKS; use NodePort for local clusters
+  selector:
+    app: netflix-clone
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

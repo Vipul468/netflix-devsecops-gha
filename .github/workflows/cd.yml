@@ -1,0 +1,51 @@
+name: CD - Update Manifests (GitOps)
+
+# Pipeline 2 from the diagram (the GitHub Actions half).
+# This does NOT deploy directly. Following GitOps, it bumps the image tag in
+# k8s/deployment.yaml and commits it. Argo CD watches the repo and reconciles
+# the cluster to match. This keeps Git as the single source of truth.
+
+on:
+  workflow_call:                 # called by ci.yml after a successful, scanned build
+    inputs:
+      image_tag:
+        required: true
+        type: string
+  workflow_dispatch:             # allow manual re-deploy of a specific tag
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy'
+        required: true
+        type: string
+
+permissions:
+  contents: write                # needs to commit the manifest change
+
+jobs:
+  update-manifests:
+    name: Bump image tag in manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout config
+        uses: actions/checkout@v4
+
+      - name: Update image tag in deployment.yaml
+        run: |
+          set -euo pipefail
+          NEW="${{ secrets.DOCKERHUB_USERNAME }}/netflix-clone:${{ inputs.image_tag }}"
+          echo "Setting image to: $NEW"
+          # Replace the image line for the netflix container
+          sed -i -E "s|(image:\s*).*/netflix-clone:.*|\1${NEW}|" k8s/deployment.yaml
+          grep 'netflix-clone:' k8s/deployment.yaml
+
+      - name: Commit & push manifest change
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No manifest change — nothing to deploy."
+            exit 0
+          fi
+          git add k8s/deployment.yaml
+          git commit -m "chore(deploy): netflix-clone image -> ${{ inputs.image_tag }} [skip ci]"
+          git push

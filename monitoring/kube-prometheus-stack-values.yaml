@@ -1,0 +1,32 @@
+# Minimal, sane values for a demo cluster.
+grafana:
+  adminPassword: "ChangeMe_please"   # override with --set or a secret in real use
+  service:
+    type: ClusterIP                  # use LoadBalancer to expose publicly
+  defaultDashboardsEnabled: true
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    # Discover ServiceMonitors in all namespaces (so app metrics can be added later)
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+# Keep the demo light
+kubeStateMetrics:
+  enabled: true
+nodeExporter:
+  enabled: true

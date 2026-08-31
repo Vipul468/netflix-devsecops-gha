@@ -1,0 +1,144 @@
+name: CI - Build & Secure
+
+# Pipeline 1 from the diagram: runs on every push / PR to main.
+# Security gates (Sonar, OWASP, Trivy) can FAIL the build before an image is pushed.
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'k8s/**'          # avoid a loop: the CD job commits here
+      - '**.md'
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/netflix-clone
+  IMAGE_TAG: ${{ github.run_number }}          # simple, monotonic build tag
+
+jobs:
+  build-and-secure:
+    name: Build & Secure
+    runs-on: ubuntu-latest
+    steps:
+      # 01/02 — Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # SonarQube needs full history for accurate blame
+
+      - name: Set up JDK 17 (for Sonar scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 03 — SonarQube: static analysis + Quality Gate
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=netflix-clone
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/node_modules/**,**/build/**
+
+      - name: SonarQube Quality Gate (fail build if gate fails)
+        uses: sonarsource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # 04 — OWASP Dependency-Check (SCA)
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: netflix-clone
+          path: '.'
+          format: 'HTML'
+          # Fail the build on any dependency with CVSS >= 7 (High/Critical)
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+        env:
+          # optional but strongly recommended to avoid NVD rate limits
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+
+      # 05 — Trivy filesystem / repo scan
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'          # fail the build on HIGH/CRITICAL in source
+          ignore-unfixed: true
+
+      # 06 — Docker build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build image (load locally for scanning)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            TMDB_V3_API_KEY=${{ secrets.TMDB_V3_API_KEY }}
+
+      # 07 — Trivy image scan
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'          # do not publish a vulnerable image
+          ignore-unfixed: true
+
+      # 08 — Push to Docker Hub (only reached if every gate above passed)
+      - name: Push image to Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            TMDB_V3_API_KEY=${{ secrets.TMDB_V3_API_KEY }}
+
+    outputs:
+      image_tag: ${{ env.IMAGE_TAG }}
+
+  # Chain into the GitOps CD workflow, passing the freshly-built tag
+  trigger-cd:
+    name: Trigger CD (update manifests)
+    needs: build-and-secure
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/cd.yml
+    with:
+      image_tag: ${{ needs.build-and-secure.outputs.image_tag }}
+    secrets: inherit
