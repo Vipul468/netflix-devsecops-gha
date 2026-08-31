@@ -10,7 +10,7 @@ ARG TMDB_V3_API_KEY
 ENV REACT_APP_TMDB_V3_API_KEY=$TMDB_V3_API_KEY
 
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build
 
